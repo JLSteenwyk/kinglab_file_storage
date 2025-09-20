@@ -20,7 +20,9 @@ app.secret_key = 'microscopy_multiuser_key_2025'
 
 # Configuration
 BASE_UPLOAD_FOLDER = 'storage'  # Change this to your base storage path
-ALLOWED_EXTENSIONS = {'tiff', 'tif', 'jpg', 'jpeg', 'png', 'nd2', 'lsm', 'czi', 'dm3', 'dm4', 'fcs'}
+# ALLOWED_EXTENSIONS = {'tiff', 'tif', 'jpg', 'jpeg', 'png', 'nd2', 'lsm', 'czi', 'dm3', 'dm4', 'fcs'}
+# Allow all file types - set to None to accept any extension
+ALLOWED_EXTENSIONS = None
 MAX_FILE_SIZE = 200 * 1024 * 1024 * 1024  # 200GB per file
 MAX_CONCURRENT_UPLOADS = 3  # Maximum simultaneous uploads
 UPLOAD_QUEUE_SIZE = 10  # Maximum queued uploads
@@ -62,6 +64,10 @@ def get_user_directory(username):
     return user_dir
 
 def allowed_file(filename):
+    # If ALLOWED_EXTENSIONS is None, accept any file with a valid filename
+    if ALLOWED_EXTENSIONS is None:
+        return bool(filename)  # Accept any non-empty filename
+    # Otherwise check against the allowed extensions
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_disk_usage():
@@ -989,7 +995,7 @@ HTML_TEMPLATE = '''
         <!-- Upload Section (only shown when user is selected and uploads allowed) -->
         <form id="uploadForm" method="POST" enctype="multipart/form-data" action="/upload">
             <!-- Always render the file input, but hide the whole upload area if conditions not met -->
-            <input type="file" id="fileInput" name="files" multiple style="display: none;" accept=".tiff,.tif,.jpg,.jpeg,.png,.nd2,.lsm,.czi,.dm3,.dm4,.fcs">
+            <input type="file" id="fileInput" name="files" multiple style="display: none;">
 
             <div class="upload-area" id="uploadArea">
                 {% if upload_allowed %}
@@ -1734,6 +1740,9 @@ if __name__ == '__main__':
     print(f"Starting Multi-User Microscopy Upload Server...")
     print(f"Base upload folder: {BASE_UPLOAD_FOLDER}")
     print(f"Access the server at: http://[your-server-ip]:748")
-    print(f"Supported file types: {', '.join(ALLOWED_EXTENSIONS)}")
+    if ALLOWED_EXTENSIONS:
+        print(f"Supported file types: {', '.join(ALLOWED_EXTENSIONS)}")
+    else:
+        print("All file types are supported")
     
     app.run(host='0.0.0.0', port=748, debug=True)
