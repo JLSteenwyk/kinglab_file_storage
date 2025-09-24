@@ -1239,6 +1239,12 @@ HTML_TEMPLATE = '''
                 });
         }
 
+        function isImageFile(filename) {
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'tiff', 'tif'];
+            const ext = filename.split('.').pop().toLowerCase();
+            return imageExtensions.includes(ext);
+        }
+
         function renderFileTree(tree, container, username) {
             if (tree.children && tree.children.length > 0) {
                 tree.children.forEach(item => {
@@ -1261,6 +1267,8 @@ HTML_TEMPLATE = '''
                         // Render file
                         const fileDiv = document.createElement('div');
                         fileDiv.className = 'tree-file';
+                        const previewButton = isImageFile(item.name) ?
+                            `<a href="/preview/${username}/${item.path}" target="_blank" class="file-action-btn">Preview</a>` : '';
                         fileDiv.innerHTML = `
                             <div>
                                 <span class="tree-icon">📄</span>
@@ -1268,7 +1276,7 @@ HTML_TEMPLATE = '''
                                 <span class="file-info">${item.size} MB - ${item.date}</span>
                             </div>
                             <div class="file-actions">
-                                <a href="/preview/${username}/${item.path}" target="_blank" class="file-action-btn">Preview</a>
+                                ${previewButton}
                                 <a href="/download/${username}/${item.path}" class="file-action-btn">Download</a>
                             </div>
                         `;
@@ -1283,19 +1291,23 @@ HTML_TEMPLATE = '''
         function renderFiles(files, username) {
             if (!files || files.length === 0) return '<div style="padding: 10px; color: #666;">Empty folder</div>';
 
-            return files.map(file => `
-                <div class="tree-file">
-                    <div>
-                        <span class="tree-icon">📄</span>
-                        ${file.name}
-                        <span class="file-info">${file.size} MB - ${file.date}</span>
+            return files.map(file => {
+                const previewButton = isImageFile(file.name) ?
+                    `<a href="/preview/${username}/${file.path}" target="_blank" class="file-action-btn">Preview</a>` : '';
+                return `
+                    <div class="tree-file">
+                        <div>
+                            <span class="tree-icon">📄</span>
+                            ${file.name}
+                            <span class="file-info">${file.size} MB - ${file.date}</span>
+                        </div>
+                        <div class="file-actions">
+                            ${previewButton}
+                            <a href="/download/${username}/${file.path}" class="file-action-btn">Download</a>
+                        </div>
                     </div>
-                    <div class="file-actions">
-                        <a href="/preview/${username}/${file.path}" target="_blank" class="file-action-btn">Preview</a>
-                        <a href="/download/${username}/${file.path}" class="file-action-btn">Download</a>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function toggleSubfolder(element) {
