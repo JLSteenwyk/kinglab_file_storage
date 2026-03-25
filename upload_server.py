@@ -1671,7 +1671,7 @@ def delete_item(username, filepath):
         return jsonify({'error': 'Invalid path'}), 400
 
     if not os.path.exists(target_path):
-        return jsonify({'error': 'Not found'}), 404
+        return jsonify({'success': True})
 
     try:
         if os.path.isdir(target_path):
