@@ -850,6 +850,19 @@ HTML_TEMPLATE = '''
             background: #023047;
         }
 
+        .file-action-btn.delete-btn {
+            background: #e63946;
+        }
+
+        .file-action-btn.delete-btn:hover {
+            background: #c1121f;
+        }
+
+        .folder-actions {
+            display: inline;
+            margin-left: 10px;
+        }
+
         .file-info {
             color: #546e7a;
             font-size: 12px;
@@ -1257,6 +1270,9 @@ HTML_TEMPLATE = '''
                                 <span class="tree-icon">📁</span>
                                 ${item.name}
                                 <span class="file-info">(${item.children ? item.children.length : 0} files)</span>
+                                <span class="folder-actions">
+                                    <button class="file-action-btn delete-btn" onclick="event.stopPropagation(); deleteItem('${username}', '${item.name}', '${item.name}', 'folder')">Delete</button>
+                                </span>
                             </div>
                             <div class="tree-children" style="display: none;">
                                 ${renderFiles(item.children, username)}
@@ -1278,6 +1294,7 @@ HTML_TEMPLATE = '''
                             <div class="file-actions">
                                 ${previewButton}
                                 <a href="/download/${username}/${item.path}" class="file-action-btn">Download</a>
+                                <button class="file-action-btn delete-btn" onclick="deleteItem('${username}', '${item.path}', '${item.name}', 'file')">Delete</button>
                             </div>
                         `;
                         container.appendChild(fileDiv);
@@ -1304,6 +1321,7 @@ HTML_TEMPLATE = '''
                         <div class="file-actions">
                             ${previewButton}
                             <a href="/download/${username}/${file.path}" class="file-action-btn">Download</a>
+                            <button class="file-action-btn delete-btn" onclick="deleteItem('${username}', '${file.path}', '${file.name}', 'file')">Delete</button>
                         </div>
                     </div>
                 `;
@@ -1321,6 +1339,22 @@ HTML_TEMPLATE = '''
                 childrenDiv.style.display = 'none';
                 element.querySelector('.tree-icon').textContent = '📁';
             }
+        }
+
+        function deleteItem(username, path, name, type) {
+            const label = type === 'folder' ? `the folder "${name}" and all its contents` : `"${name}"`;
+            if (!confirm(`Are you sure you want to delete ${label}?`)) return;
+
+            fetch(`/delete/${username}/${path}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        loadFileTree(username);
+                    } else {
+                        alert('Error deleting: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(() => alert('Error deleting item. Please try again.'));
         }
 
         // Event listeners are now added in DOMContentLoaded above
@@ -1621,6 +1655,33 @@ def preview_file(username, filepath):
             return send_file(file_path, as_attachment=True)
     else:
         return 'File not found', 404
+
+@app.route('/delete/<username>/<path:filepath>', methods=['DELETE'])
+def delete_item(username, filepath):
+    """Delete a file or folder for the current user"""
+    current_user = session.get('current_user')
+    if not current_user or current_user != username:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    user_dir = get_user_directory(username)
+    target_path = os.path.realpath(os.path.join(user_dir, filepath))
+
+    # Prevent directory traversal
+    if not target_path.startswith(os.path.realpath(user_dir)):
+        return jsonify({'error': 'Invalid path'}), 400
+
+    if not os.path.exists(target_path):
+        return jsonify({'error': 'Not found'}), 404
+
+    try:
+        if os.path.isdir(target_path):
+            shutil.rmtree(target_path)
+        else:
+            os.remove(target_path)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/set_user/<username>')
 def set_user(username):

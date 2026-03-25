@@ -47,7 +47,7 @@ Users are defined in `storage/users.json`:
   "Nicole",
   "Alain",
   "Michael",
-  "Becca",
+  "Stefany",
   "Chrisa",
   "Jacob"
 ]
